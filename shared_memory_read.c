@@ -12,14 +12,17 @@ char const * storage_filepath = "shm_test";
 int file_length = 512; //bytes
 
 int main(int argc, char* argv[]) {
-	shm_unlink(storage_filepath);
-
+	shm_unlink(storage_filepath); // try to unlink shared memory from before if we failed and didnt unlink
 	pid_t process_pid = getpid();
-	int memory_fd = shm_open("shm_test", O_RDWR | O_CREAT, S_IRUSR | S_IWUSR);
-		if (memory_fd == -1) {
-			fprintf(stderr, "Error with shm_open\n");
-			fprintf(stderr, "%s\n", strerror(errno));
-		}
+	int memory_fd = shm_open(
+		"shm_test",
+		O_RDWR | O_CREAT, /* open for reading, and create if not exists */
+		S_IRUSR | S_IWUSR /* set permissions: read for owner, write for owner */
+	);
+	if (memory_fd == -1) {
+		fprintf(stderr, "Error with shm_open\n");
+		fprintf(stderr, "%s\n", strerror(errno));
+	}
 	// extend memory size by file_length bytes
 	int extend = ftruncate(memory_fd, file_length);
 	if (extend == -1) {
@@ -36,12 +39,12 @@ int main(int argc, char* argv[]) {
 	if (memory_address == MAP_FAILED) {
 		fprintf(stderr, "map failed\n");
 	}
+	// write data to shared memory
 	char* data = (char *) malloc(100 * sizeof(char));
-	sprintf(data, "Hello, world! From process %d\n", process_pid);
+	fprintf(stderr, "Writing hello world in main process\n");
+	sprintf(data, "What's up? Peeps. From process %d\n", process_pid);
 	memcpy(memory_address, data, strlen(data));
-	fprintf(stderr, "the pid is: %d\n", process_pid);
 	// create a separate process
-
 	int fork_ret = fork();
 	if (fork_ret == -1) {
 		fprintf(stderr, "fork() failed\n");
@@ -50,15 +53,14 @@ int main(int argc, char* argv[]) {
 		// in child process
 		// do a read
 		char * read_data = (char *) malloc(100 * sizeof(char));
-		fprintf(stderr, "%d\n", strlen(data));
 		memcpy(read_data, memory_address, strlen(data));
 		fprintf(stderr, "in child, read:%s\n", read_data);
 	} else {
-	// wait for child process to read
-	pid_t child_pid = wait(0);
+		// wait for child process to read
+		pid_t child_pid = wait(0);
 		// clean up, unmap the mmaped addresses and unlink shared memory.
-	munmap(memory_address, file_length);
-	shm_unlink(storage_filepath);
+		munmap(memory_address, file_length);
+		shm_unlink(storage_filepath);
 	}
 	return 0;
 }
