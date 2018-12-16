@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
 	void* memory_address = mmap(
 		NULL, /* let system slect the address to map */
 		file_length, /* map file_length bytes */
-		PROT_WRITE, /* write and read permissions to the memory */
+		PROT_WRITE | PROT_READ, /* write and read permissions to the memory */
 		MAP_SHARED, /* needed for shared memory so that multiple processes can access */
 		memory_fd, /* memory file descriptor */
 		0 /* offset */
