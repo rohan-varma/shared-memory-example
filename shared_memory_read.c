@@ -55,12 +55,14 @@ int main(int argc, char* argv[]) {
 		char * read_data = (char *) malloc(100 * sizeof(char));
 		memcpy(read_data, memory_address, strlen(data));
 		fprintf(stderr, "in child, read:%s\n", read_data);
+		free(data);
 	} else {
 		// wait for child process to read
 		pid_t child_pid = wait(0);
 		// clean up, unmap the mmaped addresses and unlink shared memory.
 		munmap(memory_address, file_length);
 		shm_unlink(storage_filepath);
+		free(data);
 	}
 	return 0;
 }
